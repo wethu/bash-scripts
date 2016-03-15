@@ -1,0 +1,28 @@
+#!/bin/bash
+
+# This way you can customize which branches should be skipped when
+# prepending commit message.
+if [ -z "$BRANCHES_TO_SKIP" ]; then
+  BRANCHES_TO_SKIP=(master)
+fi
+
+# Our company uses Trigger +http://triggerapp.com+ for project management
+# Trigger tasks come with a numeric ID prepended to the short description
+# and we use these in our feature branches.
+
+# Example: 12345-my-feature-branch
+# This automatically prepends our trigger task ID to the git commit message. 
+
+# Usage:
+# * Ensure your branch begins with the Trigger ID
+# * Make Commits
+
+BRANCH_NAME=$(git symbolic-ref --short HEAD | sed -r 's/([^0-9])//g')
+BRANCH_NAME="${BRANCH_NAME##*/}"
+
+BRANCH_EXCLUDED=$(printf "%s\n" "${BRANCHES_TO_SKIP[@]}" | grep -c "^$BRANCH_NAME$")
+BRANCH_IN_COMMIT=$(grep -c "\[$BRANCH_NAME\]" $1)
+
+if [ -n "$BRANCH_NAME" ] && ! [[ $BRANCH_EXCLUDED -eq 1 ]] && ! [[ $BRANCH_IN_COMMIT -ge 1 ]]; then
+  sed -i.bak -e "1s/^/[$BRANCH_NAME] /" $1
+fi
